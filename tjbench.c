@@ -171,7 +171,7 @@ static int decomp(unsigned char *srcBuf, unsigned char **jpegBuf,
   }
   /* Set the destination buffer to gray so we know whether the decompressor
      attempted to write to it */
-  memset(dstBuf, 127, pitch * scaledh);
+  memset(dstBuf, 127, (size_t)pitch * scaledh);
 
   if (doYUV) {
     int width = doTile ? tilew : scaledw;
@@ -193,7 +193,7 @@ static int decomp(unsigned char *srcBuf, unsigned char **jpegBuf,
     double start = getTime();
 
     for (row = 0, dstPtr = dstBuf; row < ntilesh;
-         row++, dstPtr += pitch * tileh) {
+         row++, dstPtr += (size_t)pitch * tileh) {
       for (col = 0, dstPtr2 = dstPtr; col < ntilesw;
            col++, tile++, dstPtr2 += ps * tilew) {
         int width = doTile ? min(tilew, w - col * tilew) : scaledw;
@@ -304,8 +304,8 @@ static int decomp(unsigned char *srcBuf, unsigned char **jpegBuf,
 bailout:
   if (file) fclose(file);
   if (handle) tjDestroy(handle);
-  if (dstBuf && dstBufAlloc) free(dstBuf);
-  if (yuvBuf) free(yuvBuf);
+  if (dstBufAlloc) free(dstBuf);
+  free(yuvBuf);
   return retval;
 }
 
@@ -486,10 +486,10 @@ static int fullTest(unsigned char *srcBuf, int w, int h, int subsamp,
       if (decomp(srcBuf, jpegBuf, jpegSize, tmpBuf, w, h, subsamp, jpegQual,
                  fileName, tilew, tileh) == -1)
         goto bailout;
-    }
+    } else if (quiet == 1) printf("N/A\n");
 
     for (i = 0; i < ntilesw * ntilesh; i++) {
-      if (jpegBuf[i]) tjFree(jpegBuf[i]);
+      tjFree(jpegBuf[i]);
       jpegBuf[i] = NULL;
     }
     free(jpegBuf);  jpegBuf = NULL;
@@ -502,18 +502,16 @@ static int fullTest(unsigned char *srcBuf, int w, int h, int subsamp,
   }
 
 bailout:
-  if (file) { fclose(file);  file = NULL; }
+  if (file) fclose(file);
   if (jpegBuf) {
-    for (i = 0; i < ntilesw * ntilesh; i++) {
-      if (jpegBuf[i]) tjFree(jpegBuf[i]);
-      jpegBuf[i] = NULL;
-    }
-    free(jpegBuf);  jpegBuf = NULL;
+    for (i = 0; i < ntilesw * ntilesh; i++)
+      tjFree(jpegBuf[i]);
   }
-  if (yuvBuf) { free(yuvBuf);  yuvBuf = NULL; }
-  if (jpegSize) { free(jpegSize);  jpegSize = NULL; }
-  if (tmpBuf) { free(tmpBuf);  tmpBuf = NULL; }
-  if (handle) { tjDestroy(handle);  handle = NULL; }
+  free(jpegBuf);
+  free(yuvBuf);
+  free(jpegSize);
+  free(tmpBuf);
+  if (handle) tjDestroy(handle);
   return retval;
 }
 
@@ -701,7 +699,7 @@ static int decompTest(char *fileName)
       }
     } else {
       if (quiet == 1) printf("N/A     N/A     ");
-      if (jpegBuf[0]) tjFree(jpegBuf[0]);
+      tjFree(jpegBuf[0]);
       jpegBuf[0] = NULL;
       decompsrc = 1;
     }
@@ -716,27 +714,25 @@ static int decompTest(char *fileName)
     } else if (quiet == 1) printf("N/A\n");
 
     for (i = 0; i < ntilesw * ntilesh; i++) {
-      if (jpegBuf[i]) tjFree(jpegBuf[i]);
+      tjFree(jpegBuf[i]);
       jpegBuf[i] = NULL;
     }
     free(jpegBuf);  jpegBuf = NULL;
-    if (jpegSize) { free(jpegSize);  jpegSize = NULL; }
+    free(jpegSize);  jpegSize = NULL;
 
     if (tilew == w && tileh == h) break;
   }
 
 bailout:
-  if (file) { fclose(file);  file = NULL; }
+  if (file) fclose(file);
   if (jpegBuf) {
-    for (i = 0; i < ntilesw * ntilesh; i++) {
-      if (jpegBuf[i]) tjFree(jpegBuf[i]);
-      jpegBuf[i] = NULL;
-    }
-    free(jpegBuf);  jpegBuf = NULL;
+    for (i = 0; i < ntilesw * ntilesh; i++)
+      tjFree(jpegBuf[i]);
   }
-  if (jpegSize) { free(jpegSize);  jpegSize = NULL; }
-  if (srcBuf) { free(srcBuf);  srcBuf = NULL; }
-  if (t) { free(t);  t = NULL; }
+  free(jpegBuf);
+  free(jpegSize);
+  free(srcBuf);
+  free(t);
   if (handle) { tjDestroy(handle);  handle = NULL; }
   return retval;
 }
@@ -1026,6 +1022,6 @@ int main(int argc, char *argv[])
   }
 
 bailout:
-  if (srcBuf) tjFree(srcBuf);
+  tjFree(srcBuf);
   return retval;
 }
