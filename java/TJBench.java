@@ -478,8 +478,6 @@ final class TJBench {
       if (!compOnly)
         decomp(srcBuf, jpegBuf, jpegSize, tmpBuf, w, h, subsamp, jpegQual,
                fileName, tilew, tileh);
-      else if (quiet == 1)
-        System.out.println("N/A");
 
       if (tilew == w && tileh == h) break;
     }

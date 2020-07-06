@@ -2,7 +2,7 @@
  * jsimd_mips.c
  *
  * Copyright 2009 Pierre Ossman <ossman@cendio.se> for Cendio AB
- * Copyright (C) 2009-2011, 2014, 2016, 2018, 2020, D. R. Commander.
+ * Copyright (C) 2009-2011, 2014, 2016, 2018, D. R. Commander.
  * Copyright (C) 2013-2014, MIPS Technologies, Inc., California.
  * Copyright (C) 2015-2016, 2018, Matthieu Darbois.
  *
@@ -29,9 +29,9 @@
 
 static unsigned int simd_support = ~0;
 
-#if !(defined(__mips_dsp) && (__mips_dsp_rev >= 2)) && defined(__linux__)
+#if defined(__linux__)
 
-LOCAL(void)
+LOCAL(int)
 parse_proc_cpuinfo(const char *search_string)
 {
   const char *file_name = "/proc/cpuinfo";
@@ -45,12 +45,13 @@ parse_proc_cpuinfo(const char *search_string)
       if (strstr(cpuinfo_line, search_string) != NULL) {
         fclose(f);
         simd_support |= JSIMD_DSPR2;
-        return;
+        return 1;
       }
     }
     fclose(f);
   }
   /* Did not find string in the proc file, or not Linux ELF. */
+  return 0;
 }
 
 #endif
@@ -72,13 +73,14 @@ init_simd(void)
 
   simd_support = 0;
 
-#if defined(__mips_dsp) && (__mips_dsp_rev >= 2)
+#if defined(__MIPSEL__) && defined(__mips_dsp) && (__mips_dsp_rev >= 2)
   simd_support |= JSIMD_DSPR2;
 #elif defined(__linux__)
   /* We still have a chance to use MIPS DSPR2 regardless of globally used
    * -mdspr2 options passed to gcc by performing runtime detection via
    * /proc/cpuinfo parsing on linux */
-  parse_proc_cpuinfo("MIPS 74K");
+  if (!parse_proc_cpuinfo("MIPS 74K"))
+    return;
 #endif
 
 #ifndef NO_GETENV
@@ -338,13 +340,8 @@ jsimd_can_h2v2_downsample(void)
   if (sizeof(JDIMENSION) != 4)
     return 0;
 
-  /* FIXME: jsimd_h2v2_downsample_dspr2() fails some of the TJBench tiling
-   * regression tests, probably because the DSPr2 SIMD implementation predates
-   * those tests. */
-#if 0
   if (simd_support & JSIMD_DSPR2)
     return 1;
-#endif
 
   return 0;
 }
@@ -379,13 +376,8 @@ jsimd_can_h2v1_downsample(void)
   if (sizeof(JDIMENSION) != 4)
     return 0;
 
-  /* FIXME: jsimd_h2v1_downsample_dspr2() fails some of the TJBench tiling
-   * regression tests, probably because the DSPr2 SIMD implementation predates
-   * those tests. */
-#if 0
   if (simd_support & JSIMD_DSPR2)
     return 1;
-#endif
 
   return 0;
 }
@@ -449,10 +441,8 @@ jsimd_can_h2v1_upsample(void)
   if (sizeof(JDIMENSION) != 4)
     return 0;
 
-#if defined(__MIPSEL__)
   if (simd_support & JSIMD_DSPR2)
     return 1;
-#endif
 
   return 0;
 }
@@ -513,10 +503,8 @@ jsimd_can_h2v2_fancy_upsample(void)
   if (sizeof(JDIMENSION) != 4)
     return 0;
 
-#if defined(__MIPSEL__)
   if (simd_support & JSIMD_DSPR2)
     return 1;
-#endif
 
   return 0;
 }
@@ -532,10 +520,8 @@ jsimd_can_h2v1_fancy_upsample(void)
   if (sizeof(JDIMENSION) != 4)
     return 0;
 
-#if defined(__MIPSEL__)
   if (simd_support & JSIMD_DSPR2)
     return 1;
-#endif
 
   return 0;
 }
@@ -683,10 +669,8 @@ jsimd_can_convsamp(void)
   if (sizeof(DCTELEM) != 2)
     return 0;
 
-#if defined(__MIPSEL__)
   if (simd_support & JSIMD_DSPR2)
     return 1;
-#endif
 
   return 0;
 }
@@ -743,10 +727,8 @@ jsimd_can_fdct_islow(void)
   if (sizeof(DCTELEM) != 2)
     return 0;
 
-#if defined(__MIPSEL__)
   if (simd_support & JSIMD_DSPR2)
     return 1;
-#endif
 
   return 0;
 }
@@ -762,10 +744,8 @@ jsimd_can_fdct_ifast(void)
   if (sizeof(DCTELEM) != 2)
     return 0;
 
-#if defined(__MIPSEL__)
   if (simd_support & JSIMD_DSPR2)
     return 1;
-#endif
 
   return 0;
 }
@@ -892,10 +872,8 @@ jsimd_can_idct_4x4(void)
   if (sizeof(ISLOW_MULT_TYPE) != 2)
     return 0;
 
-#if defined(__MIPSEL__)
   if (simd_support & JSIMD_DSPR2)
     return 1;
-#endif
 
   return 0;
 }
@@ -1039,10 +1017,8 @@ jsimd_can_idct_ifast(void)
   if (IFAST_SCALE_BITS != 2)
     return 0;
 
-#if defined(__MIPSEL__)
   if (simd_support & JSIMD_DSPR2)
     return 1;
-#endif
 
   return 0;
 }

@@ -1232,9 +1232,9 @@ bailout:
     free(dstBufs);
   }
   SAFE_RELEASE(jsrcBuf, jpegBuf);
-  free(jdstBufs);
-  free(dstSizes);
-  free(t);
+  if (jdstBufs) free(jdstBufs);
+  if (dstSizes) free(dstSizes);
+  if (t) free(t);
   return jdstSizes;
 }
 

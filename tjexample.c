@@ -388,9 +388,9 @@ int main(int argc, char **argv)
   }
 
 bailout:
-  tjFree(imgBuf);
+  if (imgBuf) tjFree(imgBuf);
   if (tjInstance) tjDestroy(tjInstance);
-  tjFree(jpegBuf);
+  if (jpegBuf) tjFree(jpegBuf);
   if (jpegFile) fclose(jpegFile);
   return retval;
 }

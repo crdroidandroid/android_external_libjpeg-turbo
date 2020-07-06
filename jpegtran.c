@@ -591,7 +591,8 @@ main(int argc, char **argv)
   end_progress_monitor((j_common_ptr)&dstinfo);
 #endif
 
-  free(icc_profile);
+  if (icc_profile != NULL)
+    free(icc_profile);
 
   /* All done. */
   exit(jsrcerr.num_warnings + jdsterr.num_warnings ?

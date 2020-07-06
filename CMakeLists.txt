@@ -5,7 +5,7 @@ if(CMAKE_EXECUTABLE_SUFFIX)
 endif()
 
 project(libjpeg-turbo C)
-set(VERSION 2.0.5)
+set(VERSION 2.0.3)
 string(REPLACE "." ";" VERSION_TRIPLET ${VERSION})
 list(GET VERSION_TRIPLET 0 VERSION_MAJOR)
 list(GET VERSION_TRIPLET 1 VERSION_MINOR)
@@ -451,21 +451,6 @@ if(NOT INLINE_WORKS)
 endif()
 message(STATUS "INLINE = ${INLINE} (FORCE_INLINE = ${FORCE_INLINE})")
 
-if(WITH_TURBOJPEG)
-  if(MSVC)
-    set(THREAD_LOCAL "__declspec(thread)")
-  else()
-    set(THREAD_LOCAL "__thread")
-  endif()
-  check_c_source_compiles("${THREAD_LOCAL} int i;  int main(void) { i = 0;  return i; }" HAVE_THREAD_LOCAL)
-  if(HAVE_THREAD_LOCAL)
-    message(STATUS "THREAD_LOCAL = ${THREAD_LOCAL}")
-  else()
-    message(WARNING "Thread-local storage is not available.  The TurboJPEG API library's global error handler will not be thread-safe.")
-    unset(THREAD_LOCAL)
-  endif()
-endif()
-
 if(UNIX AND NOT APPLE)
   file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/conftest.map "VERS_1 { global: *; };")
   set(CMAKE_REQUIRED_FLAGS
@@ -903,18 +888,12 @@ foreach(libtype ${TEST_LIBTYPES})
     set(suffix -static)
   endif()
   if(WITH_TURBOJPEG)
-    add_test(tjunittest-${libtype}
-      ${CMAKE_CROSSCOMPILING_EMULATOR} tjunittest${suffix})
-    add_test(tjunittest-${libtype}-alloc
-      ${CMAKE_CROSSCOMPILING_EMULATOR} tjunittest${suffix} -alloc)
-    add_test(tjunittest-${libtype}-yuv
-      ${CMAKE_CROSSCOMPILING_EMULATOR} tjunittest${suffix} -yuv)
-    add_test(tjunittest-${libtype}-yuv-alloc
-      ${CMAKE_CROSSCOMPILING_EMULATOR} tjunittest${suffix} -yuv -alloc)
-    add_test(tjunittest-${libtype}-yuv-nopad
-      ${CMAKE_CROSSCOMPILING_EMULATOR} tjunittest${suffix} -yuv -noyuvpad)
-    add_test(tjunittest-${libtype}-bmp
-      ${CMAKE_CROSSCOMPILING_EMULATOR} tjunittest${suffix} -bmp)
+    add_test(tjunittest-${libtype} tjunittest${suffix})
+    add_test(tjunittest-${libtype}-alloc tjunittest${suffix} -alloc)
+    add_test(tjunittest-${libtype}-yuv tjunittest${suffix} -yuv)
+    add_test(tjunittest-${libtype}-yuv-alloc tjunittest${suffix} -yuv -alloc)
+    add_test(tjunittest-${libtype}-yuv-nopad tjunittest${suffix} -yuv -noyuvpad)
+    add_test(tjunittest-${libtype}-bmp tjunittest${suffix} -bmp)
 
     set(MD5_PPM_GRAY_TILE 89d3ca21213d9d864b50b4e4e7de4ca6)
     set(MD5_PPM_420_8x8_TILE 847fceab15c5b7b911cb986cf0f71de3)
@@ -939,23 +918,22 @@ foreach(libtype ${TEST_LIBTYPES})
       ${CMAKE_COMMAND} -E copy_if_different ${TESTIMAGES}/testorig.ppm
         testout_tile.ppm)
     add_test(tjbench-${libtype}-tile
-      ${CMAKE_CROSSCOMPILING_EMULATOR} tjbench${suffix} testout_tile.ppm 95
-        -rgb -quiet -tile -benchtime 0.01 -warmup 0)
+      tjbench${suffix} testout_tile.ppm 95 -rgb -quiet -tile -benchtime 0.01
+        -warmup 0)
     set_tests_properties(tjbench-${libtype}-tile
       PROPERTIES DEPENDS tjbench-${libtype}-tile-cp)
 
     foreach(tile 8 16 32 64 128)
       add_test(tjbench-${libtype}-tile-gray-${tile}x${tile}-cmp
-        ${CMAKE_CROSSCOMPILING_EMULATOR} ${MD5CMP} ${MD5_PPM_GRAY_TILE}
+        ${MD5CMP} ${MD5_PPM_GRAY_TILE}
           testout_tile_GRAY_Q95_${tile}x${tile}.ppm)
       foreach(subsamp 420 422)
         add_test(tjbench-${libtype}-tile-${subsamp}-${tile}x${tile}-cmp
-          ${CMAKE_CROSSCOMPILING_EMULATOR} ${MD5CMP}
-            ${MD5_PPM_${subsamp}_${tile}x${tile}_TILE}
+          ${MD5CMP} ${MD5_PPM_${subsamp}_${tile}x${tile}_TILE}
             testout_tile_${subsamp}_Q95_${tile}x${tile}.ppm)
       endforeach()
       add_test(tjbench-${libtype}-tile-444-${tile}x${tile}-cmp
-        ${CMAKE_CROSSCOMPILING_EMULATOR} ${MD5CMP} ${MD5_PPM_444_TILE}
+        ${MD5CMP} ${MD5_PPM_444_TILE}
           testout_tile_444_Q95_${tile}x${tile}.ppm)
       foreach(subsamp gray 420 422 444)
         set_tests_properties(tjbench-${libtype}-tile-${subsamp}-${tile}x${tile}-cmp
@@ -967,22 +945,19 @@ foreach(libtype ${TEST_LIBTYPES})
       ${CMAKE_COMMAND} -E copy_if_different ${TESTIMAGES}/testorig.ppm
         testout_tilem.ppm)
     add_test(tjbench-${libtype}-tilem
-      ${CMAKE_CROSSCOMPILING_EMULATOR} tjbench${suffix} testout_tilem.ppm 95
-        -rgb -fastupsample -quiet -tile -benchtime 0.01 -warmup 0)
+      tjbench${suffix} testout_tilem.ppm 95 -rgb -fastupsample -quiet -tile
+        -benchtime 0.01 -warmup 0)
     set_tests_properties(tjbench-${libtype}-tilem
       PROPERTIES DEPENDS tjbench-${libtype}-tilem-cp)
 
     add_test(tjbench-${libtype}-tile-420m-8x8-cmp
-      ${CMAKE_CROSSCOMPILING_EMULATOR} ${MD5CMP} ${MD5_PPM_420M_8x8_TILE}
-        testout_tilem_420_Q95_8x8.ppm)
+      ${MD5CMP} ${MD5_PPM_420M_8x8_TILE} testout_tilem_420_Q95_8x8.ppm)
     add_test(tjbench-${libtype}-tile-422m-8x8-cmp
-      ${CMAKE_CROSSCOMPILING_EMULATOR} ${MD5CMP} ${MD5_PPM_422M_8x8_TILE}
-        testout_tilem_422_Q95_8x8.ppm)
+      ${MD5CMP} ${MD5_PPM_422M_8x8_TILE} testout_tilem_422_Q95_8x8.ppm)
     foreach(tile 16 32 64 128)
       foreach(subsamp 420 422)
         add_test(tjbench-${libtype}-tile-${subsamp}m-${tile}x${tile}-cmp
-          ${CMAKE_CROSSCOMPILING_EMULATOR} ${MD5CMP}
-            ${MD5_PPM_${subsamp}M_TILE}
+          ${MD5CMP} ${MD5_PPM_${subsamp}M_TILE}
             testout_tilem_${subsamp}_Q95_${tile}x${tile}.ppm)
       endforeach()
     endforeach()
@@ -1000,10 +975,9 @@ foreach(libtype ${TEST_LIBTYPES})
 
   macro(add_bittest PROG NAME ARGS OUTFILE INFILE MD5SUM)
     add_test(${PROG}-${libtype}-${NAME}
-      ${CMAKE_CROSSCOMPILING_EMULATOR} ${PROG}${suffix} ${ARGS}
-        -outfile ${OUTFILE} ${INFILE})
+      ${PROG}${suffix} ${ARGS} -outfile ${OUTFILE} ${INFILE})
     add_test(${PROG}-${libtype}-${NAME}-cmp
-      ${CMAKE_CROSSCOMPILING_EMULATOR} ${MD5CMP} ${MD5SUM} ${OUTFILE})
+      ${MD5CMP} ${MD5SUM} ${OUTFILE})
     set_tests_properties(${PROG}-${libtype}-${NAME}-cmp PROPERTIES
       DEPENDS ${PROG}-${libtype}-${NAME})
     if(${ARGC} GREATER 6)
@@ -1024,14 +998,12 @@ foreach(libtype ${TEST_LIBTYPES})
     ${MD5_PPM_RGB_ISLOW} cjpeg-${libtype}-rgb-islow)
 
   add_test(djpeg-${libtype}-rgb-islow-icc-cmp
-    ${CMAKE_CROSSCOMPILING_EMULATOR} ${MD5CMP}
-      b06a39d730129122e85c1363ed1bbc9e testout_rgb_islow.icc)
+    ${MD5CMP} b06a39d730129122e85c1363ed1bbc9e testout_rgb_islow.icc)
   set_tests_properties(djpeg-${libtype}-rgb-islow-icc-cmp PROPERTIES
     DEPENDS djpeg-${libtype}-rgb-islow)
 
   add_bittest(jpegtran icc "-copy;all;-icc;${TESTIMAGES}/test2.icc"
-    testout_rgb_islow2.jpg testout_rgb_islow.jpg
-    ${MD5_JPEG_RGB_ISLOW2} cjpeg-${libtype}-rgb-islow)
+    testout_rgb_islow2.jpg testout_rgb_islow.jpg ${MD5_JPEG_RGB_ISLOW2})
 
   if(NOT WITH_12BIT)
     # CC: RGB->RGB565  SAMP: fullsize  IDCT: islow  ENT: huff
@@ -1244,7 +1216,7 @@ foreach(libtype ${TEST_LIBTYPES})
 
   # Context rows: Yes  Intra-iMCU row: No   iMCU row prefetch: No   ENT: prog huff
   add_test(cjpeg-${libtype}-420-islow-prog
-    ${CMAKE_CROSSCOMPILING_EMULATOR} cjpeg${suffix} -dct int -prog
+    cjpeg${suffix} -dct int -prog
       -outfile testout_420_islow_prog.jpg ${TESTIMAGES}/testorig.ppm)
   add_bittest(djpeg 420-islow-prog-crop62x62_71_71
     "-dct;int;-crop;62x62+71+71;-ppm"
@@ -1261,7 +1233,7 @@ foreach(libtype ${TEST_LIBTYPES})
 
   # Context rows: No   Intra-iMCU row: Yes  ENT: huff
   add_test(cjpeg-${libtype}-444-islow
-    ${CMAKE_CROSSCOMPILING_EMULATOR} cjpeg${suffix} -dct int -sample 1x1
+    cjpeg${suffix} -dct int -sample 1x1
       -outfile testout_444_islow.jpg ${TESTIMAGES}/testorig.ppm)
   add_bittest(djpeg 444-islow-skip1_6 "-dct;int;-skip;1,6;-ppm"
     testout_444_islow_skip1,6.ppm testout_444_islow.jpg
@@ -1269,7 +1241,7 @@ foreach(libtype ${TEST_LIBTYPES})
 
   # Context rows: No   Intra-iMCU row: No   ENT: prog huff
   add_test(cjpeg-${libtype}-444-islow-prog
-    ${CMAKE_CROSSCOMPILING_EMULATOR} cjpeg${suffix} -dct int -prog -sample 1x1
+    cjpeg${suffix} -dct int -prog -sample 1x1
       -outfile testout_444_islow_prog.jpg ${TESTIMAGES}/testorig.ppm)
   add_bittest(djpeg 444-islow-prog-crop98x98_13_13
     "-dct;int;-crop;98x98+13+13;-ppm"
@@ -1279,9 +1251,8 @@ foreach(libtype ${TEST_LIBTYPES})
   # Context rows: No   Intra-iMCU row: No   ENT: arith
   if(WITH_ARITH_ENC)
     add_test(cjpeg-${libtype}-444-islow-ari
-      ${CMAKE_CROSSCOMPILING_EMULATOR} cjpeg${suffix} -dct int -arithmetic
-        -sample 1x1 -outfile testout_444_islow_ari.jpg
-        ${TESTIMAGES}/testorig.ppm)
+      cjpeg${suffix} -dct int -arithmetic -sample 1x1
+        -outfile testout_444_islow_ari.jpg ${TESTIMAGES}/testorig.ppm)
     if(WITH_ARITH_DEC)
       add_bittest(djpeg 444-islow-ari-crop37x37_0_0
         "-dct;int;-crop;37x37+0+0;-ppm"

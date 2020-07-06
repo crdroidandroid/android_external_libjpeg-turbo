@@ -516,9 +516,7 @@ main(int argc, char **argv)
   FILE *input_file;
   FILE *output_file;
   unsigned char *inbuffer = NULL;
-#if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
   unsigned long insize = 0;
-#endif
   JDIMENSION num_scanlines;
 
   /* On Mac, fetch a command line. */
@@ -813,7 +811,7 @@ main(int argc, char **argv)
   end_progress_monitor((j_common_ptr)&cinfo);
 #endif
 
-  if (memsrc)
+  if (memsrc && inbuffer != NULL)
     free(inbuffer);
 
   /* All done. */
